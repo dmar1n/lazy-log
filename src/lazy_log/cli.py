@@ -49,20 +49,18 @@ def process_file(file_path: Path | str, fix: bool, check_import: bool = False) -
     file_path = Path(file_path)
     if not file_path.is_file():
         return 1
-    with file_path.open("r", encoding="utf-8") as file:
-        content = file.read()
+    content = file_path.read_text(encoding="utf-8")
     transformer = Transformer(file_path, check_import=check_import)
     transformed_content = transformer.run(content)
-    if content == transformed_content or not transformer.issues:
+    if not transformer.issues or content == transformed_content:
         return 0
     if fix:
-        with file_path.open("w", encoding="utf-8") as file:
-            file.write(transformed_content)
-        print(f"F-strings found and fixed in '{file_path}'.")
-    elif transformer.issues:
-        print(f"F-strings found in '{file_path}':")
-        for issue in transformer.issues:
-            print(f"  - {issue}")
+        file_path.write_text(transformed_content, encoding="utf-8")
+        print_with_fallback(f"F-strings found and fixed in '{file_path}'.")
+    else:
+        lines = [f"F-strings found in '{file_path}':"]
+        lines += [f"  - {issue}" for issue in sorted(transformer.issues)]
+        print_with_fallback("\n".join(lines))
     return 1
 
 
@@ -130,20 +128,21 @@ def main(argv: list[str] | None = None) -> int:
                 ):
                     all_files.add(resolved_path)
         else:
-            print(
+            print_with_fallback(
                 f"Warning: '{path_str}' is not a valid file or directory and will be ignored.",
-                file=sys.stderr,
+                stream=sys.stderr,
             )
 
-    filenames = [str(f) for f in sorted(all_files)]
-    logger.debug("Files to be processed: %s", len(filenames))
-    results = sum(process_file(filename, fix=args.fix) == 1 for filename in filenames)
-    if filenames and results == 0:
+    filenames = sorted(all_files)
+    logger.debug("Number of files to process: %d", len(filenames))
+    issue_count = sum(process_file(path, fix=args.fix) == 1 for path in filenames)
+    if filenames and issue_count == 0:
+        noun = "file" if len(filenames) == 1 else "files"
         message = (
-            f"🚀 Scanned {len(filenames)} files, no f-strings in logging calls found."
+            f"🚀 Scanned {len(filenames)} {noun}, no f-strings in logging calls found."
         )
         print_with_fallback(message)
-    return 1 if results else 0
+    return 1 if issue_count else 0
 
 
 if __name__ == "__main__":

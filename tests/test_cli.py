@@ -79,7 +79,7 @@ def test_main_processes_file_and_prints_success(monkeypatch, tmp_path):
 
     assert exit_code == 0
     assert calls == [(target.resolve(), False)]
-    assert messages and "Scanned 1 files" in messages[0]
+    assert messages and "Scanned 1 file" in messages[0]
 
 
 def test_main_passes_fix_flag(monkeypatch, tmp_path):

@@ -3,6 +3,7 @@
 import re
 import sys
 from importlib.metadata import PackageNotFoundError, version
+from typing import TextIO
 
 from lazy_log.constants import PROG_NAME
 
@@ -73,14 +74,26 @@ def get_version() -> str:
         return "unknown"
 
 
-def print_with_fallback(message: str) -> None:
-    """Print text, degrading safely when the console cannot encode the characters."""
+def print_with_fallback(message: str, stream: TextIO | None = None) -> None:
+    """Print text, degrading safely when the console cannot encode the characters.
+
+    Pre-commit hooks run on consoles with a limited code page (e.g. Windows cp1252),
+    where a file path with non-ASCII characters or the status
+    emoji would otherwise raise UnicodeEncodeError and abort the commit. When the
+    stream cannot encode the message, fall back to writing bytes with unencodable
+    characters escaped rather than crashing.
+
+    Args:
+        message: The text to print.
+        stream: The text stream to write to. Defaults to ``sys.stdout``.
+    """
+    stream = stream if stream is not None else sys.stdout
     try:
-        print(message)
+        print(message, file=stream)
     except UnicodeEncodeError:
-        encoding = sys.stdout.encoding or "utf-8"
+        encoding = stream.encoding or "utf-8"
         safe_bytes = message.encode(encoding, errors="backslashreplace")
-        sys.stdout.buffer.write(safe_bytes + b"\n")
+        stream.buffer.write(safe_bytes + b"\n")
 
 
 def prepare_exclude_patterns(patterns: list[str]) -> list[str]:
