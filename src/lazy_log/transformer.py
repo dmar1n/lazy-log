@@ -8,7 +8,9 @@ logging best practices and can optionally check for the presence of logging impo
 The module also includes a Visitor class for diagnostics, which uses the ast module to identify
 potential logging calls with f-strings.
 
-Code formatting is handled using the Black formatter.
+The transformation is driven entirely by libcst, which preserves the original formatting of every
+node it does not rewrite. Only the logging calls being converted are changed; the rest of the file,
+including quoting, spacing and line endings, is left untouched.
 """
 
 import ast
@@ -16,10 +18,9 @@ import logging
 import re
 from pathlib import Path
 
-import black
 import libcst as cst
 
-from lazy_log.utils import python_fmt_to_printf
+from lazy_log.utils import python_fmt_to_printf, to_string_literal
 
 LOG_CALL_PATTERN = re.compile("^[_]{,2}log", re.IGNORECASE)
 DEFAULT_LOG_METHODS = {"debug", "info", "warning", "error", "critical"}
@@ -107,8 +108,8 @@ class Transformer(cst.CSTTransformer):
             module = cst.parse_module(content)
             wrapper = cst.MetadataWrapper(module)
             tree = wrapper.visit(self)
-            result = tree.code
-            return self._format_code(result)
+
+            return tree.code
         except cst.ParserSyntaxError as e:
             logger.debug("Invalid Python syntax: %s", e)
             return content
@@ -206,7 +207,7 @@ class Transformer(cst.CSTTransformer):
         format_str = "".join(parts)
         self._register_issue(original_node, fstring_code)
         new_args = [
-            cst.Arg(value=cst.SimpleString(repr(format_str))),
+            cst.Arg(value=cst.SimpleString(to_string_literal(format_str))),
             *(cst.Arg(value=val) for val in values),
             *updated_node.args[1:],
         ]
@@ -270,27 +271,6 @@ class Transformer(cst.CSTTransformer):
             else:
                 return None
         return "".join(parts)
-
-    def _format_code(self, content: str) -> str:
-        """Format the given Python source code using Black and ensure a final newline.
-
-        Args:
-            content: The Python source code to format.
-
-        Returns:
-            The formatted Python source code as a string.
-        """
-        try:
-            formatted = black.format_str(
-                content,
-                mode=black.FileMode(line_length=120),
-            ).strip()
-        except black.InvalidInput as e:
-            logger.warning("Error formatting code with Black: %s", e)
-            formatted = content.strip()
-        if not formatted.endswith("\n"):
-            formatted += "\n"
-        return formatted
 
 
 class Visitor(ast.NodeVisitor):

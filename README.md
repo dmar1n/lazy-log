@@ -217,10 +217,10 @@ class DateTimeLogger:
 
 ## Notes
 
-### Code formatting with Black
+### Minimal, formatting-preserving changes
 
-When transforming code, the tool uses [Black](https://black.readthedocs.io/en/stable/) to reformat the modified files.
-If your project already uses Black, the changes produced by this tool will be consistent with Black’s formatting style.
+The tool rewrites code with [LibCST](https://libcst.readthedocs.io/en/latest/). Only the logging calls being converted are modified; the rest of the file (quoting, spacing, blank lines and line endings) is left as it was. Generated format strings use
+double quotes.
 
 ### Detection of log calls
 

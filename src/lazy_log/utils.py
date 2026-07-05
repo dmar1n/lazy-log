@@ -46,6 +46,25 @@ def python_fmt_to_printf(fmt: str) -> str:
     return result
 
 
+def to_string_literal(value: str) -> str:
+    """Render a Python string literal for value, preferring double quotes.
+
+    Uses repr() to produce a correctly escaped literal, then flips the outer
+    quotes to double quotes when doing so does not introduce escaping (i.e. when
+    the value contains no double quote).
+
+    Args:
+        value: The string value to render as a literal.
+
+    Returns:
+        A valid Python string literal for value.
+    """
+    literal = repr(value)
+    if literal.startswith("'") and '"' not in value:
+        literal = f'"{literal[1:-1]}"'
+    return literal
+
+
 def get_version() -> str:
     """Return installed package version, falling back gracefully when not installed."""
     try:

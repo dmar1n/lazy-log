@@ -55,11 +55,11 @@ TEST_DATA = [
     ),
     (
         """logger.info(f"List items: {', '.join(items)}")""",
-        'logger.info("List items: %s", ", ".join(items))',
+        """logger.info("List items: %s", ', '.join(items))""",
     ),
     (
         """logger.info(f"Dict value: {my_dict.get(key, 'default')}")""",
-        """logger.info("Dict value: %s", my_dict.get(key, "default"))""",
+        """logger.info("Dict value: %s", my_dict.get(key, 'default'))""",
     ),
     (
         'logger.info(f"Complex expression: {a * b + c}")',
@@ -137,7 +137,7 @@ TEST_DATA = [
     ),
     (
         'logger.info(f"Progress: {completed}/{total} ({(completed/total)*100:.1f}%)")',
-        'logger.info("Progress: %s/%s (%.1f%%)", completed, total, (completed / total) * 100)',
+        'logger.info("Progress: %s/%s (%.1f%%)", completed, total, (completed/total)*100)',
     ),
     (
         'logger.info(f"""User {user.name} has roles: {", ".join(user.roles)}""")',
@@ -162,6 +162,11 @@ TEST_DATA = [
     (
         """logging.info(f"User {user!r} is {progress:03d}% done; elapsed={elapsed:7.2f}s, ETA={eta:5.1f}s")""",
         """logging.info("User %s is %03d%% done; elapsed=%7.2fs, ETA=%5.1fs", user, progress, elapsed, eta)""",
+    ),
+    ('logger.info(f"Results:/n{results}")', 'logger.info("Results:/n%s", results)'),
+    (
+        """logger.info(f"Results:/n'{results}'")""",
+        """logger.info("Results:/n'%s'", results)""",
     ),
 ]
 

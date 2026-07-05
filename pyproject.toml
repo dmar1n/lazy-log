@@ -36,8 +36,7 @@ classifiers = [
   "Topic :: Utilities",
 ]
 dependencies = [
-  "black>=26.5.1",
-  "libcst>=1.8.6,<2",
+  "libcst>=1.8.6",
 ]
 urls.homepage = "https://github.com/dmar1n/lazy-log-formatter"
 urls.repository = "https://github.com/dmar1n/lazy-log-formatter"
@@ -45,11 +44,14 @@ scripts.lazy-log-formatter = "lazy_log.cli:main"
 
 [dependency-groups]
 dev = [
-  "hypothesis>=6.148.7,<7",
-  "pre-commit>=4.5,<5",
-  "pytest>=9.0.1,<10",
-  "pytest-cov>=7,<8",
+  "hypothesis>=6.156.1",
+  "pre-commit>=4.6",
+  "pytest>=9.1.1",
 ]
+
+[tool.poetry]
+dependencies.python = ">=3.10"
+dependencies.libcst = "^1.8.6"
 
 [tool.uv]
 build-backend.module-name = "lazy_log"

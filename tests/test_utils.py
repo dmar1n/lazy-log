@@ -1,6 +1,6 @@
 import pytest
 
-from lazy_log.utils import python_fmt_to_printf
+from lazy_log.utils import python_fmt_to_printf, to_string_literal
 
 
 @pytest.mark.parametrize(
@@ -32,3 +32,26 @@ from lazy_log.utils import python_fmt_to_printf
 def test_python_fmt_to_printf(input_fmt, expected):
     actual = python_fmt_to_printf(input_fmt)
     assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        # No quotes in the value: prefer double quotes.
+        ("Hello %s", '"Hello %s"'),
+        ("", '""'),
+        # Value contains a double quote but no single quote: keep single quotes
+        # to avoid escaping.
+        ('He said "%s"', "'He said \"%s\"'"),
+        # Value contains a single quote but no double quote: repr already uses
+        # double quotes.
+        ("He said '%s'", "\"He said '%s'\""),
+        # Non-ASCII characters are preserved, not escaped.
+        ("Temp %.2f°C", '"Temp %.2f°C"'),
+    ],
+)
+def test_to_string_literal(value, expected):
+    literal = to_string_literal(value)
+    assert literal == expected
+    # The literal must round-trip back to the original value.
+    assert eval(literal) == value  # noqa: S307
