@@ -101,6 +101,11 @@ ipython_config.py
 #   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
 #poetry.lock
 
+# uv
+#   It is recommended to include uv.lock in version control.
+#   https://docs.astral.sh/uv/concepts/projects/sync/#checking-the-lockfile-into-version-control
+#uv.lock
+
 # pdm
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
 #pdm.lock
