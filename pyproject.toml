@@ -4,7 +4,7 @@ requires = [ "uv-build>=0.11,<0.12" ]
 
 [project]
 name = "lazy-log-formatter"
-version = "0.11.0"
+version = "0.12.0"
 description = "A pre-commit script to make log lines lazier"
 readme = "README.md"
 keywords = [
