@@ -74,7 +74,7 @@ Add the following to your `.pre-commit-config.yaml`:
 
 ```yaml
 - repo: https://github.com/dmar1n/lazy-log-formatter
-  rev: 0.12.0
+  rev: 0.12.1
   hooks:
     - id: lazy-log-formatter
       args: ['--fix']
