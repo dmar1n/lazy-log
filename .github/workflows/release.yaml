@@ -8,6 +8,8 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+b[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+rc[0-9]+"
 
+permissions: {}
+
 env:
   PACKAGE_NAME: "lazy-log-formatter"
   OWNER: "dmar1n"
@@ -15,20 +17,24 @@ env:
 jobs:
   details:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       new_version: ${{ steps.release.outputs.new_version }}
       suffix: ${{ steps.release.outputs.suffix }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Extract tag and Details
         id: release
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
-            NEW_VERSION=$(echo $TAG_NAME | awk -F'-' '{print $1}')
-            SUFFIX=$(echo $TAG_NAME | grep -oP '[a-z]+[0-9]+' || echo "")
+            NEW_VERSION=$(echo "$TAG_NAME" | awk -F'-' '{print $1}')
+            SUFFIX=$(echo "$TAG_NAME" | grep -oP '[a-z]+[0-9]+' || echo "")
             echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
             echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
             echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
@@ -40,22 +46,25 @@ jobs:
   check_pypi:
     needs: details
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Fetch information from PyPI
         run: |
-          response=$(curl -s https://pypi.org/pypi/${{ env.PACKAGE_NAME }}/json || echo "{}")
-          latest_previous_version=$(echo $response | grep -oP '"releases":\{"\K[^"]+' | sort -rV | head -n 1)
+          response=$(curl -s "https://pypi.org/pypi/${PACKAGE_NAME}/json" || echo "{}")
+          latest_previous_version=$(echo "$response" | grep -oP '"releases":\{"\K[^"]+' | sort -rV | head -n 1)
           if [ -z "$latest_previous_version" ]; then
             echo "Package not found on PyPI."
             latest_previous_version="0.0.0"
           fi
-          echo "latest_previous_version=$latest_previous_version" >> $GITHUB_ENV
+          echo "latest_previous_version=$latest_previous_version" >> "$GITHUB_ENV"
 
       - name: Compare versions and exit if not newer
+        env:
+          NEW_VERSION: ${{ needs.details.outputs.new_version }}
         run: |
-          NEW_VERSION=${{ needs.details.outputs.new_version }}
           LATEST_VERSION=$latest_previous_version
-          if [ "$(printf '%s\n' "$LATEST_VERSION" "$NEW_VERSION" | sort -rV | head -n 1)" != "$NEW_VERSION" ] || [ "$NEW_VERSION" == "$LATEST_VERSION" ]; then
+          HIGHEST=$(printf '%s\n' "$LATEST_VERSION" "$NEW_VERSION" | sort -rV | head -n 1)
+          if [ "$HIGHEST" != "$NEW_VERSION" ] || [ "$NEW_VERSION" = "$LATEST_VERSION" ]; then
             echo "The new version $NEW_VERSION is not greater than the latest version $LATEST_VERSION on PyPI."
             exit 1
           fi
@@ -63,17 +72,24 @@ jobs:
   setup_and_build:
     needs: [details, check_pypi]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           python-version: "3.12"
+          enable-cache: false
 
       - name: Set project version with uv
+        env:
+          NEW_VERSION: ${{ needs.details.outputs.new_version }}
         run: |
-          uv version ${{ needs.details.outputs.new_version }}
+          uv version "$NEW_VERSION"
 
       - name: Install dependencies
         run: uv sync
@@ -82,7 +98,7 @@ jobs:
         run: uv build
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist
           path: dist/
@@ -97,15 +113,13 @@ jobs:
       id-token: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: dist
           path: dist/
-          pattern: dist-*
-          merge-multiple: true
 
       - name: Publish distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
 
   github_release:
     name: Create GitHub Release
@@ -115,29 +129,32 @@ jobs:
       contents: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: dist
           path: dist/
 
       - name: Extract changelog for this version
+        env:
+          VERSION: ${{ needs.details.outputs.new_version }}
         run: |
-          VERSION="${{ needs.details.outputs.new_version }}"
           awk "
-          /^## \\[$VERSION\\]/ {in_section=1; next}
-          /^## \\[/ && in_section {exit}
+          /^## \[$VERSION\]/ {in_section=1; next}
+          /^## \[/ && in_section {exit}
           in_section
           " changelog.md > RELEASE_NOTES.md
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.details.outputs.tag_name }}
         run: |
-          gh release create ${{ needs.details.outputs.tag_name }} dist/* \
-            --title ${{ needs.details.outputs.tag_name }} \
+          gh release create "$TAG_NAME" dist/* \
+            --title "$TAG_NAME" \
             --notes-file RELEASE_NOTES.md

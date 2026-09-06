@@ -67,19 +67,20 @@ def test_main_processes_file_and_prints_success(monkeypatch, tmp_path):
     target.write_text("print('hi')", encoding="utf-8")
     calls: list[tuple[Path, bool]] = []
 
-    def fake_process(file_path, fix, check_import=False):
+    def fake_process(file_path, *, fix, check_import=False):
         calls.append((Path(file_path), fix))
         return 0
 
     messages: list[str] = []
     monkeypatch.setattr(cli, "process_file", fake_process)
-    monkeypatch.setattr(cli, "print_with_fallback", lambda msg: messages.append(msg))
+    monkeypatch.setattr(cli, "print_with_fallback", messages.append)
 
     exit_code = cli.main([str(target)])
 
     assert exit_code == 0
     assert calls == [(target.resolve(), False)]
-    assert messages and "Scanned 1 file" in messages[0]
+    assert messages
+    assert "Scanned 1 file" in messages[0]
 
 
 def test_main_passes_fix_flag(monkeypatch, tmp_path):
@@ -87,7 +88,7 @@ def test_main_passes_fix_flag(monkeypatch, tmp_path):
     target.write_text("print('hi')", encoding="utf-8")
     seen: dict[str, bool] = {}
 
-    def fake_process(file_path, fix, check_import=False):
+    def fake_process(file_path, *, fix, check_import=False):
         seen["fix"] = fix
         return 0
 
@@ -107,7 +108,7 @@ def test_main_excludes_paths(monkeypatch, tmp_path):
     skip.write_text("print('skip')", encoding="utf-8")
     called: list[str] = []
 
-    def fake_process(file_path, fix, check_import=False):
+    def fake_process(file_path, *, fix, check_import=False):
         called.append(Path(file_path).name)
         return 0
 
@@ -128,7 +129,7 @@ def test_main_skips_virtualenv_files(monkeypatch, tmp_path):
     included.write_text("print('run')", encoding="utf-8")
     processed: list[str] = []
 
-    def fake_process(file_path, fix, check_import=False):
+    def fake_process(file_path, *, fix, check_import=False):
         processed.append(Path(file_path).name)
         return 0
 
@@ -155,7 +156,7 @@ def test_main_warns_on_invalid_path(monkeypatch, capsys):
     output, error = capsys.readouterr()
     assert exit_code == 0
     assert "not a valid file or directory" in error
-    assert output == ""
+    assert not output
 
 
 def test_main_returns_one_when_issues_found(monkeypatch, tmp_path):
@@ -163,7 +164,7 @@ def test_main_returns_one_when_issues_found(monkeypatch, tmp_path):
     target.write_text("print('hi')", encoding="utf-8")
     monkeypatch.setattr(cli, "process_file", lambda *args, **kwargs: 1, raising=False)
     messages: list[str] = []
-    monkeypatch.setattr(cli, "print_with_fallback", lambda msg: messages.append(msg))
+    monkeypatch.setattr(cli, "print_with_fallback", messages.append)
 
     exit_code = cli.main([str(target)])
 

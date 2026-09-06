@@ -1,3 +1,4 @@
+# Copyright (c) 2025 Daniel Marín
 """Utility functions for the lazy_log package."""
 
 import re
@@ -97,7 +98,14 @@ def print_with_fallback(message: str, stream: TextIO | None = None) -> None:
 
 
 def prepare_exclude_patterns(patterns: list[str]) -> list[str]:
-    """Normalize user-provided exclude patterns for cross-platform matching."""
+    """Normalize user-provided exclude patterns for cross-platform matching.
+
+    Args:
+        patterns: The exclude patterns as provided on the command line.
+
+    Returns:
+        The patterns with separators normalized and relative patterns anchored.
+    """
     prepared = []
     for pattern in patterns:
         normalized = pattern.replace("\\", "/")
