@@ -4,7 +4,7 @@ from lazy_log.utils import python_fmt_to_printf, to_string_literal
 
 
 @pytest.mark.parametrize(
-    "input_fmt, expected",
+    ("input_fmt", "expected"),
     [
         # Test empty and special cases
         ("", "%s"),
@@ -35,7 +35,7 @@ def test_python_fmt_to_printf(input_fmt, expected):
 
 
 @pytest.mark.parametrize(
-    "value, expected",
+    ("value", "expected"),
     [
         # No quotes in the value: prefer double quotes.
         ("Hello %s", '"Hello %s"'),
@@ -54,4 +54,4 @@ def test_to_string_literal(value, expected):
     literal = to_string_literal(value)
     assert literal == expected
     # The literal must round-trip back to the original value.
-    assert eval(literal) == value  # noqa: S307
+    assert eval(literal) == value  # ruff: ignore[suspicious-eval-usage]

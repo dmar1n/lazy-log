@@ -2,8 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.12.0] - 2026-06-05
 
@@ -93,8 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support for excluding files and directories using glob patterns via the `--exclude` option. 
-  Multiple patterns can be specified by separating them with commas.
+- Support for excluding files and directories using glob patterns via the `--exclude` option. Multiple patterns can be specified by separating them with commas.
 
 ### Fixed
 
@@ -106,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed the case where the f-string contains a format specifier for thousand separator (`,`). 
+- Fixed the case where the f-string contains a format specifier for thousand separator (`,`).
 
 ## [0.8.1] - 2025-11-02
 
@@ -147,7 +145,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2025-06-28
 
 - Refactored the code to improve readability and maintainability.
-
 
 ## [0.4.6] - 2025-06-08
 

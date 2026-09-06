@@ -1,3 +1,4 @@
+# Copyright (c) 2025 Daniel Marín
 """Module for the CLI of the lazylog package.
 
 This module implements the command-line interface (CLI) for the lazylog package, specifically providing a tool to detect
@@ -35,7 +36,12 @@ from lazy_log.utils import get_version, prepare_exclude_patterns, print_with_fal
 logger = logging.getLogger(__name__)
 
 
-def process_file(file_path: Path | str, fix: bool, check_import: bool = False) -> int:
+def process_file(
+    file_path: Path | str,
+    *,
+    fix: bool,
+    check_import: bool = False,
+) -> int:
     """Process a file to find and optionally fix f-strings in log lines.
 
     Args:

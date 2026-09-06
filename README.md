@@ -1,17 +1,10 @@
 # Lazy log formatter
 
-![PyPI - Version](https://img.shields.io/pypi/v/lazy-log-formatter) 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lazy-log-formatter)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/lazy-log-formatter)
-![License](https://img.shields.io/github/license/dmar1n/lazy-log-formatter)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dmar1n/lazy-log-formatter/.github%2Fworkflows%2Frelease.yaml)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com/)
+![PyPI - Version](https://img.shields.io/pypi/v/lazy-log-formatter) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lazy-log-formatter) ![PyPI - Downloads](https://img.shields.io/pypi/dm/lazy-log-formatter) ![License](https://img.shields.io/github/license/dmar1n/lazy-log-formatter) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dmar1n/lazy-log-formatter/.github%2Fworkflows%2Frelease.yaml) [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com/)
 
-A tool that automatically converts f-strings in Python logging calls into lazy logging calls 
-for consistency with Python documentation, improved performance and linting compliance.
+A tool that automatically converts f-strings in Python logging calls into lazy logging calls for consistency with Python documentation, improved performance and linting compliance.
 
-See [PyPI page](https://pypi.org/project/lazy-log-formatter/) for more details.
-See [Changelog](changelog.md) for release notes.
+See [PyPI page](https://pypi.org/project/lazy-log-formatter/) for more details. See [Changelog](changelog.md) for release notes.
 
 Example:
 
@@ -31,7 +24,8 @@ In Python, the recommended way to [log variable data](https://docs.python.org/3/
 
 ```python
 import logging
-logging.warning('%s before you %s', 'Look', 'leap!')
+
+logging.warning("%s before you %s", "Look", "leap!")
 ```
 
 This approach:
@@ -96,7 +90,6 @@ You can run the tool from the command line using the following options:
 | `--exclude [PATTERN...]` | Excludes files/directories matching one or more patterns  |
 | `PATH [PATH...]`         | One or more paths to scan (defaults to current directory) |
 
-
 ## Examples
 
 Check all Python files in the current directory and subdirectories:
@@ -126,7 +119,7 @@ lazy-log-formatter lazy_log/cli.py tests/data/test.py
 Exclude specific files or directories:
 
 ```sh
-lazy-log-formatter tests/data --exclude "*.pyc" "__pycache__/*" 
+lazy-log-formatter tests/data --exclude "*.pyc" "__pycache__/*"
 ```
 
 Fix issues in all Python files in a directory:
@@ -141,20 +134,20 @@ lazy-log-formatter mydir --fix
 
 ```python
 # Before
-logger.info(f'Hello {name}')
+logger.info(f"Hello {name}")
 
 # After
-logger.info('Hello %s', name)
+logger.info("Hello %s", name)
 ```
 
 ### Multiple variables
 
 ```python
 # Before
-logger.info(f'Hello {name} {surname}')
+logger.info(f"Hello {name} {surname}")
 
 # After
-logger.info('Hello %s %s', name, surname)
+logger.info("Hello %s %s", name, surname)
 ```
 
 ### Class-based logging example
@@ -219,13 +212,11 @@ class DateTimeLogger:
 
 ### Minimal, formatting-preserving changes
 
-The tool rewrites code with [LibCST](https://libcst.readthedocs.io/en/latest/). Only the logging calls being converted are modified; the rest of the file (quoting, spacing, blank lines and line endings) is left as it was. Generated format strings use
-double quotes.
+The tool rewrites code with [LibCST](https://libcst.readthedocs.io/en/latest/). Only the logging calls being converted are modified; the rest of the file (quoting, spacing, blank lines and line endings) is left as it was. Generated format strings use double quotes.
 
 ### Detection of log calls
 
-The tool includes logic to detect logging calls based on the assumption that your logger instances follow common naming conventions (e.g., `logger.info(...)`, `log.info(...)`).
-If a logger variable does not contain the substring "log" in its name, the tool will ignore it.
+The tool includes logic to detect logging calls based on the assumption that your logger instances follow common naming conventions (e.g., `logger.info(...)`, `log.info(...)`). If a logger variable does not contain the substring "log" in its name, the tool will ignore it.
 
 ### Other logging libraries
 
@@ -234,5 +225,7 @@ Only works with the native Python `logging` module. Other libraries, such as `lo
 For `loguru`, see [Lazy evaluation of expensive functions](https://loguru.readthedocs.io/en/stable/overview.html#lazy-evaluation-of-expensive-functions):
 
 ```python
-logger.opt(lazy=True).debug("If sink level <= DEBUG: {x}", x=lambda: expensive_function(2**64))
+logger.opt(lazy=True).debug(
+    "If sink level <= DEBUG: {x}", x=lambda: expensive_function(2**64)
+)
 ```

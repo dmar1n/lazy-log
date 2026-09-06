@@ -1,9 +1,9 @@
 import tempfile
 from pathlib import Path
 
+import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from pytest import fixture, mark
 
 from lazy_log.cli import process_file
 from lazy_log.transformer import Transformer
@@ -178,9 +178,13 @@ NON_STANDARD_LOGGING_IMPORT = (
 )
 
 
-@fixture(scope="function", params=["standard", "non_standard"])
+@pytest.fixture(params=["standard", "non_standard"])
 def temp_logging_fstring_file(request):
-    """Fixture to create a temporary file with logging f-strings."""
+    """Fixture to create a temporary file with logging f-strings.
+
+    Yields:
+        The path to a temporary file containing a logging call with an f-string.
+    """
     content = (
         STANDARD_LOGGING_IMPORT
         if request.param == "standard"
@@ -196,23 +200,26 @@ def temp_logging_fstring_file(request):
 
 
 class TestDataForSanity:
-    @mark.parametrize("content, expected", TEST_DATA)
-    def test_sanity(self, content, expected):
+    @staticmethod
+    @pytest.mark.parametrize(("content", "expected"), TEST_DATA)
+    def test_sanity(content, expected):
         assert isinstance(content, str)
         assert isinstance(expected, str)
 
-    def test_valid_py_syntax(self):
-        for content, expected in TEST_DATA:
-            try:
-                compile(content, "<string>", "exec")
-                compile(expected, "<string>", "exec")
-            except SyntaxError as e:
-                assert False, f"Syntax error in test data: {e}"
+    @staticmethod
+    @pytest.mark.parametrize(("content", "expected"), TEST_DATA)
+    def test_valid_py_syntax(content, expected):
+        try:
+            compile(content, "<string>", "exec")
+            compile(expected, "<string>", "exec")
+        except SyntaxError as e:
+            pytest.fail(f"Syntax error in test data: {e}")
 
 
 class TestConvertFStringsToPercentFormat:
-    @mark.parametrize("content, expected", TEST_DATA)
-    def test_transform(self, content, expected):
+    @staticmethod
+    @pytest.mark.parametrize(("content", "expected"), TEST_DATA)
+    def test_transform(content, expected):
         transformer = Transformer(Path(), check_import=False)
         result = transformer.run(content)
 
@@ -225,19 +232,21 @@ class TestConvertFStringsToPercentFormat:
 
 
 class TestTransformerHypothesis:
+    @staticmethod
     @given(st.from_regex(r'f["\'][^\n]+["\']', fullmatch=True))
-    def test_fstring_transformation_does_not_crash(self, text):
+    def test_fstring_transformation_does_not_crash(text):
         assume("\x00" not in text)
         # The transformer should not raise exceptions on any f-string
         transformer = Transformer(Path(), check_import=False)
         try:
             transformer.run(text)
         except (ValueError, SyntaxError, TypeError) as e:
-            assert False, f"Transformer crashed on input: {text} with error: {e}"
+            pytest.fail(f"Transformer crashed on input: {text} with error: {e}")
 
 
 class TestTransformerWithFiles:
-    def test_transform_file(self, tmp_path):
+    @staticmethod
+    def test_transform_file(tmp_path):
         temp_file = tmp_path / "temp_test_file.py"
         temp_file.write_text(
             'import logging\nname = "world"\nlogging.info(f"Hello, {name}!")',
@@ -245,8 +254,7 @@ class TestTransformerWithFiles:
         )
 
         process_file(temp_file, fix=True, check_import=True)
-        with open(temp_file, "r", encoding="utf-8") as file:
-            content = file.read()
+        content = Path(temp_file).read_text(encoding="utf-8")
         if "import logging" in content:
             assert 'logging.info("Hello, %s!", name)' in content
         else:

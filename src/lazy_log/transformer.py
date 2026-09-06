@@ -1,3 +1,4 @@
+# Copyright (c) 2025 Daniel Marín
 """Transformer module for rewriting logging calls that use f-strings into printf-style formatting.
 
 This module provides a Transformer class based on libcst.CSTTransformer that traverses Python source code,
@@ -13,16 +14,21 @@ node it does not rewrite. Only the logging calls being converted are changed; th
 including quoting, spacing and line endings, is left untouched.
 """
 
+from __future__ import annotations
+
 import ast
 import logging
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import libcst as cst
 
 from lazy_log.utils import python_fmt_to_printf, to_string_literal
 
-LOG_CALL_PATTERN = re.compile("^[_]{,2}log", re.IGNORECASE)
+if TYPE_CHECKING:
+    from pathlib import Path
+
+LOG_CALL_PATTERN = re.compile(r"^[_]{,2}log", re.IGNORECASE)
 DEFAULT_LOG_METHODS = {"debug", "info", "warning", "error", "critical"}
 
 logger = logging.getLogger(__name__)
@@ -68,7 +74,7 @@ class Transformer(cst.CSTTransformer):
 
     METADATA_DEPENDENCIES = (cst.metadata.PositionProvider,)
 
-    def __init__(self, file_path: Path, check_import: bool = False) -> None:
+    def __init__(self, file_path: Path, *, check_import: bool = False) -> None:
         """Initialize the Transformer.
 
         Args:
@@ -83,7 +89,7 @@ class Transformer(cst.CSTTransformer):
 
     @property
     def issues(self) -> set[str]:
-        """Get the list of issues found during the transformation.
+        """The list of issues found during the transformation.
 
         Returns:
             A list of strings representing issues found in the code.
@@ -108,16 +114,20 @@ class Transformer(cst.CSTTransformer):
             module = cst.parse_module(content)
             wrapper = cst.MetadataWrapper(module)
             tree = wrapper.visit(self)
-
-            return tree.code
         except cst.ParserSyntaxError as e:
             logger.debug("Invalid Python syntax: %s", e)
             return content
         except TypeError as e:
             logger.debug("TypeError during transformation: %s", e)
             return content
+        else:
+            return tree.code
 
-    def leave_Call(self, original_node: cst.Call, updated_node: cst.Call) -> cst.Call:
+    def leave_Call(
+        self,
+        original_node: cst.Call,
+        updated_node: cst.Call,
+    ) -> cst.Call:
         """Transform logging calls using f-strings into printf-style formatting.
 
         Args:
@@ -152,7 +162,8 @@ class Transformer(cst.CSTTransformer):
 
         return self._transform_fstring_to_printf(original_node, updated_node)
 
-    def _get_code_for_node(self, node: cst.CSTNode) -> str:
+    @staticmethod
+    def _get_code_for_node(node: cst.CSTNode) -> str:
         """Get the source code representation for a given CST node.
 
         Args:
@@ -231,7 +242,14 @@ class Transformer(cst.CSTTransformer):
         self.__issues.add(issue_message)
 
     def _gather_formatted_parts(self, expr: cst.BaseExpression) -> list[cst.CSTNode]:
-        """Flatten concatenated strings and f-strings into a single list of formatted parts."""
+        """Flatten concatenated strings and f-strings into a single list of formatted parts.
+
+        Args:
+            expr: The expression to flatten.
+
+        Returns:
+            The formatted parts of the expression, or an empty list for other expressions.
+        """
         if isinstance(expr, cst.FormattedString):
             return list(expr.parts)
         if isinstance(expr, cst.SimpleString):
@@ -247,7 +265,14 @@ class Transformer(cst.CSTTransformer):
         return []
 
     def _contains_formatted_expression(self, expr: cst.BaseExpression) -> bool:
-        """Check whether an expression includes any formatted strings."""
+        """Check whether an expression includes any formatted strings.
+
+        Args:
+            expr: The expression to inspect.
+
+        Returns:
+            True if the expression contains a formatted string, False otherwise.
+        """
         if isinstance(expr, cst.FormattedString):
             return True
         if isinstance(expr, cst.BinaryOperation) and isinstance(expr.operator, cst.Add):
@@ -256,11 +281,18 @@ class Transformer(cst.CSTTransformer):
             ) or self._contains_formatted_expression(expr.right)
         return False
 
+    @staticmethod
     def _flatten_format_spec(
-        self,
         format_spec: cst.BaseExpression | tuple[cst.CSTNode, ...],
     ) -> str | None:
-        """Extract a literal format spec; return None when it contains expressions or complex nodes."""
+        """Extract a literal format spec.
+
+        Args:
+            format_spec: The format spec node, or tuple of nodes, to flatten.
+
+        Returns:
+            The literal format spec, or None when it contains expressions or complex nodes.
+        """
         if not format_spec:
             return ""
         nodes = format_spec if isinstance(format_spec, tuple) else (format_spec,)
@@ -274,7 +306,7 @@ class Transformer(cst.CSTTransformer):
 
 
 class Visitor(ast.NodeVisitor):
-    """Visitor class that traverses the AST and prints out information about logging calls.
+    """Visitor class that traverses the AST and reports information about logging calls.
 
     This class extends `ast.NodeVisitor` to inspect function call nodes
     and identify those that match the logging pattern with f-strings.
@@ -282,19 +314,36 @@ class Visitor(ast.NodeVisitor):
     with logging calls in their codebase.
     """
 
+    @staticmethod
+    def _is_log_method(func: ast.expr) -> bool:
+        """Check whether a call target is a logging method on a logger-like name.
+
+        Args:
+            func: The AST node representing the called function.
+
+        Returns:
+            True if the node is a `log*.<level>` attribute access, False otherwise.
+        """
+        return (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Name)
+            and func.value.id.lower().startswith("log")
+            and func.attr in DEFAULT_LOG_METHODS
+        )
+
     def visit_Call(self, node: ast.Call) -> None:
-        """Visit a function call node in the AST and print information about logging calls.
+        """Visit a function call node in the AST and report information about logging calls.
 
         Args:
             node: The AST node representing the function call.
         """
         if (
-            isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id.lower().startswith("log")
-            and (node.func.attr in {"debug", "info", "warning", "error", "critical"})
+            self._is_log_method(node.func)
             and node.args
             and isinstance(node.args[0], ast.JoinedStr)
         ):
-            print(f"Found possible f-string in logging call: {ast.dump(node)}")
+            logger.debug(
+                "Found possible f-string in logging call: %s",
+                ast.dump(node),
+            )
         self.generic_visit(node)
